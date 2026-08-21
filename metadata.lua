@@ -1,6 +1,8 @@
 PLUGIN = {
     name = "cursor-agent",
-    version = "0.2.0",
+    version = "0.2.1",
     description = "Cursor Agent CLI for headless AI coding",
-    author = "mish",
+    author = "thehumanworks",
+    updateUrl = "https://github.com/thehumanworks/mise-plugin-cursor-agent",
+    minRuntimeVersion = "0.2.0",
 }

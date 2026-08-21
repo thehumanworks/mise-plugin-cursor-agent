@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Verify the plugin via the user-facing install path:
+#   mise plugin install <name> <git-url>
+# (mise clones the plugin; no manual git clone is required).
+#
+# Usage:
+#   scripts/verify_mise.sh           # install from a temporary git URL
+#   scripts/verify_mise.sh --link    # symlink this working tree (dev)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export PATH="${HOME}/.local/bin:/usr/local/bin:/usr/bin:${PATH}"
@@ -6,6 +13,14 @@ export PATH="${HOME}/.local/bin:/usr/local/bin:/usr/bin:${PATH}"
 if ! command -v mise >/dev/null 2>&1; then
     echo "mise not found; install from https://mise.jdx.dev" >&2
     exit 1
+fi
+
+SOURCE="git"
+if [[ "${1:-}" == "--link" ]]; then
+    SOURCE="link"
+elif [[ "${1:-}" != "" ]]; then
+    echo "usage: $0 [--link]" >&2
+    exit 2
 fi
 
 DATA="${TMPDIR:-/tmp}/mise-cursor-agent-verify-$$"
@@ -23,8 +38,19 @@ WORKDIR="${TMPDIR:-/tmp}/mise-cursor-agent-work-$$"
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
-echo "==> plugin link cursor-agent -> $ROOT"
-mise plugin link cursor-agent "$ROOT"
+if [[ "$SOURCE" == "link" ]]; then
+    echo "==> plugin link cursor-agent -> $ROOT"
+    mise plugin link cursor-agent "$ROOT"
+else
+    # Bare clone so mise plugin install uses a real git URL (file://),
+    # matching `mise plugin install cursor-agent https://github.com/...`.
+    BARE="${DATA}/plugin.git"
+    git clone --quiet --bare "$ROOT" "$BARE"
+    GIT_URL="file://${BARE}"
+    echo "==> plugin install cursor-agent ${GIT_URL}"
+    mise plugin install cursor-agent "$GIT_URL"
+    test -f "${MISE_DATA_DIR}/plugins/cursor-agent/metadata.lua"
+fi
 
 echo "==> ls-remote (fetches install script + tarball hash; may take a minute)"
 mise ls-remote cursor-agent
