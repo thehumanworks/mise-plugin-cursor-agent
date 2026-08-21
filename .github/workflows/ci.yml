@@ -26,18 +26,8 @@ jobs:
       - name: Install mise
         run: curl -fsSL https://mise.jdx.dev/install.sh | sh
 
-      - name: Integration (link, ls-remote, install, pinned id)
+      - name: Install plugin from git URL (no manual clone)
         run: |
           export PATH="${HOME}/.local/bin:${PATH}"
+          # Default verify path is `mise plugin install <name> <git-url>`.
           bash scripts/verify_mise.sh
-          export PATH="${HOME}/.local/bin:${PATH}"
-          DATA="${RUNNER_TEMP}/mise-ci"
-          mkdir -p "$DATA"
-          export MISE_DATA_DIR="$DATA"
-          export MISE_STATE_DIR="$DATA/state"
-          cd "$(mktemp -d)"
-          mise plugin link cursor-agent "${GITHUB_WORKSPACE}"
-          CUR="$(mise ls-remote cursor-agent | grep -E '^[0-9]{4}\.[0-9]{2}\.[0-9]{2}-[a-f0-9]+$' | head -1)"
-          test -n "$CUR"
-          mise install "cursor-agent@${CUR}"
-          mise exec "cursor-agent@${CUR}" -- cursor-agent --version | grep -q "$CUR"
