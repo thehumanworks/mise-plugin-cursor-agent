@@ -1,33 +1,21 @@
 name: CI
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-26-intel, macos-26, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Lua 5.1
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.1
-
-      - name: Unit tests
-        run: bash scripts/run_tests.sh
-
-  mise-plugin:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install mise
-        run: curl -fsSL https://mise.jdx.dev/install.sh | sh
-
-      - name: Install plugin from git URL (no manual clone)
-        run: |
-          export PATH="${HOME}/.local/bin:${PATH}"
-          # Default verify path is `mise plugin install <name> <git-url>`.
-          bash scripts/verify_mise.sh
+      - uses: jdx/mise-action@v2
+      - run: mise run test

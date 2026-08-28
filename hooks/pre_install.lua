@@ -1,37 +1,20 @@
-local platform = require("platform")
-local http = require("http")
-local cursor_agent = require("cursor_agent")
-
+--- Return the platform-specific Cursor Agent archive for one release.
+--- @param ctx PreInstallCtx
+--- @return PreInstallResult
 function PLUGIN:PreInstall(ctx)
-    local os_name, arch_name = platform.get()
+    local cursor = require("cursor")
+    local platform = require("platform").current()
+    local version = ctx.version
 
-    local current = nil
-    if ctx.version == "latest" then
-        local resp, err = http.get({
-            url = "https://cursor.com/install",
-        })
-        if err ~= nil then
-            error("Failed to fetch cursor.com/install: " .. err)
-        end
-        if resp.status_code ~= 200 then
-            error("cursor.com/install returned HTTP " .. resp.status_code)
-        end
-
-        local parse_err
-        current, parse_err = cursor_agent.parse_version_from_install_script(resp.body)
-        if current == nil then
-            error("Could not extract version from cursor.com/install: " .. (parse_err or "unknown"))
-        end
+    if version == "latest" then
+        version = cursor.latest(platform.os)
+    else
+        version = cursor.validate_version(version)
     end
-
-    local version = cursor_agent.resolve_install_version(ctx.version, current)
-    local url = cursor_agent.tarball_url(version, os_name, arch_name)
-    -- Full-file hash; mise verifies the downloaded archive against this value.
-    local sha256 = cursor_agent.sha256_tarball_from_url(url)
 
     return {
         version = version,
-        url = url,
-        sha256 = sha256,
+        url = cursor.download_url(version, platform),
+        note = "Installing Cursor Agent " .. version .. " for " .. platform.os .. "/" .. platform.arch,
     }
 end

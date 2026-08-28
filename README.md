@@ -1,102 +1,91 @@
-# cursor-agent (mise plugin)
+# Cursor Agent Mise plugin
 
-[mise](https://mise.jdx.dev) tool plugin for the [Cursor Agent CLI](https://cursor.com).
+A cross-platform [Mise tool plugin](https://mise.jdx.dev/tool-plugin-development.html) for installing the official
+[Cursor Agent CLI](https://cursor.com/docs/cli/installation).
 
-You do **not** need to clone this repository to install it. mise fetches the plugin from Git.
+The plugin reads the current release from Cursor's official installer, downloads the matching immutable package from
+Cursor's CDN, and keeps the installation isolated under Mise. It does not modify shell startup files or the user's
+global PATH.
 
-## Install from mise (no clone)
+## Supported platforms
 
-This is a vfox-style [tool plugin](https://mise.jdx.dev/tool-plugin-development.html). It is **not** in the [default mise registry](https://mise.jdx.dev/registry.html), so a short name alone (`mise plugin install cursor-agent`) will not resolve. Pass the Git URL.
+| Operating system | x64 | ARM64 | Archive |
+| --- | --- | --- | --- |
+| Linux | Yes | Yes | `tar.gz` |
+| macOS | Yes | Yes | `tar.gz` |
+| Windows | Yes | Yes | `zip` |
 
-```bash
-# mise clones the plugin for you
-mise plugin install cursor-agent https://github.com/thehumanworks/mise-plugin-cursor-agent
+The aliases `amd64`, `x86_64`, `aarch64`, `darwin`, `macos`, `windows`, and `win32` are normalized automatically.
 
-# then install / activate the tool
-mise install cursor-agent@latest
+## Install from GitHub
+
+You do not need to clone this repository. Install the plugin directly from GitHub, then activate Cursor Agent:
+
+```sh
+mise plugins install cursor-agent https://github.com/thehumanworks/mise-plugin-cursor-agent.git
 mise use --global cursor-agent@latest
 ```
 
-Always pass the name `cursor-agent`. The repo is `mise-plugin-cursor-agent`; mise's URL-only name inference only strips a `mise-` prefix, so
+The explicit `cursor-agent` name is important because the repository name is `mise-plugin-cursor-agent`.
 
-```bash
-mise plugin install https://github.com/thehumanworks/mise-plugin-cursor-agent
-```
-
-would register the plugin as `plugin-cursor-agent` and break `mise install cursor-agent`.
-
-Pin a Git ref the same way as any other plugin:
-
-```bash
-mise plugin install cursor-agent https://github.com/thehumanworks/mise-plugin-cursor-agent#main
-```
-
-### Project `mise.toml` (shared with teammates)
-
-Declare the plugin URL so `mise install` auto-fetches it — still no manual clone:
+For a project configuration shared with teammates, declare the GitHub remote in `mise.toml`:
 
 ```toml
 [plugins]
-cursor-agent = "https://github.com/thehumanworks/mise-plugin-cursor-agent"
+"vfox:cursor-agent" = "https://github.com/thehumanworks/mise-plugin-cursor-agent.git"
 
 [tools]
 cursor-agent = "latest"
 ```
 
-Then:
+Then install everything declared by the project:
 
-```bash
+```sh
 mise install
 ```
 
-The optional `vfox:` prefix marks this as a Lua tool plugin before clone (see [mise plugin config](https://mise.jdx.dev/configuration.html#plugins-specify-custom-plugin-repository-urls)):
+You can also address the GitHub-hosted vfox plugin directly without registering a short name first:
 
-```toml
-[plugins]
-"vfox:cursor-agent" = "https://github.com/thehumanworks/mise-plugin-cursor-agent"
+```sh
+mise use --global vfox:thehumanworks/mise-plugin-cursor-agent@latest
 ```
 
-## Versions
+For local development from this directory:
 
-| Request | Meaning |
-| --- | --- |
-| `latest` | Rolling channel. Resolved from `https://cursor.com/install` at install time. |
-| `YYYY.MM.DD-<hash>` | Pinned Cursor lab build id. |
-
-```bash
-mise ls-remote cursor-agent
-mise install cursor-agent@latest
-mise exec cursor-agent@latest -- cursor-agent --version
+```sh
+mise plugins link --force cursor-agent .
+mise use cursor-agent@latest
 ```
 
-Older build ids can be listed via `MISE_CURSOR_AGENT_EXTRA_VERSIONS` (comma-separated).
+Verify the installation and start an agent:
 
-Supports Linux and macOS (`x64` / `arm64`).
+```sh
+cursor-agent --version
+cursor-agent
+```
+
+On macOS and Linux, `agent` is also installed as an alias for `cursor-agent`, matching Cursor's current installer.
+
+## Version behavior
+
+Cursor's installer only advertises the current release, so `mise ls-remote cursor-agent` returns that release. The
+version has Cursor's date-and-revision form, for example `2026.08.25-3e8eec8` (newer releases may include a build
+timestamp). A specific older version can also be requested if its package is still present on Cursor's CDN:
+
+```sh
+mise install cursor-agent@2026.08.25-3e8eec8
+```
+
+Cursor does not currently publish checksums alongside these CLI archives. This plugin downloads the same HTTPS CDN
+artifacts used by Cursor's official installer but cannot supply Mise with an upstream checksum.
 
 ## Development
 
-Local clone + symlink (uncommitted edits):
+Run the platform mapping tests and a native integration install:
 
-```bash
-mise plugin link --force cursor-agent .
-bash scripts/run_tests.sh
-bash scripts/verify_mise.sh --link
+```sh
+mise run test
 ```
 
-`scripts/verify_mise.sh` (default, no `--link`) installs the plugin with `mise plugin install <name> <git-url>` from a temporary bare clone. That is the same path users hit when they do not clone this repo themselves.
-
-## Registry (optional)
-
-To make `mise install cursor-agent` work with no URL, open a PR against [jdx/mise](https://github.com/jdx/mise) `registry.toml`:
-
-```toml
-[tools.cursor-agent]
-backends = ["vfox:thehumanworks/mise-plugin-cursor-agent"]
-description = "Cursor Agent CLI for headless AI coding"
-```
-
-Until that lands, use the Git URL or a `[plugins]` entry.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+CI exercises Linux and macOS on x64 and ARM64, plus Windows on x64. Unit tests cover every supported OS and
+architecture mapping, including Windows ARM64.

@@ -1,19 +1,45 @@
-# OS files
-.DS_Store
-Thumbs.db
+# Mise local state
+.mise.toml
+mise.local.toml
+mise.lock
+.mise/
 
-# Editor files
-*.swp
-*.swo
-*~
-.idea/
-.vscode/
-*.sublime-*
+# Local environment and secrets
+.env
+.env.*
+!.env.example
 
-# Temporary files
+# Lua build and test output
+*.luac
+.luacheckcache
+luacov.report.out
+coverage/
+test/tmp/
+tests/tmp/
+
+# Downloaded archives and temporary files
+*.tar.gz
+*.tgz
+*.zip
 *.tmp
+*.temp
 *.bak
 *.backup
+*~
 
 # Logs
 *.log
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-*
+*.swp
+*.swo
+
+# Operating-system metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,5 @@
+[tools]
+lua = "5.4"
+
+[tasks.test]
+run = "bash ./mise-tasks/test"

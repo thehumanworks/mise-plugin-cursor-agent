@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE description="Run unit tests and an integration install"
+set -euo pipefail
+
+plugin_dir=$(cd "$(dirname "$0")/.." && pwd)
+
+if command -v lua >/dev/null 2>&1; then
+    (cd "$plugin_dir" && lua tests/platform_test.lua)
+elif command -v nvim >/dev/null 2>&1; then
+    (cd "$plugin_dir" && nvim --headless -l tests/platform_test.lua)
+else
+    echo "Skipping Lua unit test: install lua or nvim to run it" >&2
+fi
+
+mise plugins link --force cursor-agent "$plugin_dir"
+mise cache clear cursor-agent
+latest_version=$(mise ls-remote cursor-agent | head -1)
+mise install --force "cursor-agent@$latest_version"
+installed_version=$(mise exec "cursor-agent@$latest_version" -- cursor-agent --version)
+
+if [[ "$installed_version" != "$latest_version" ]]; then
+    echo "Expected cursor-agent $latest_version, got $installed_version" >&2
+    exit 1
+fi
+
+printf 'cursor-agent %s installed successfully\n' "$installed_version"
